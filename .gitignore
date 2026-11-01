@@ -1,0 +1,10 @@
+# Build trees, caches and outputs (all reproducible via build.sh)
+/work/
+/work*/
+/stage/
+/stage*/
+/distfiles/
+
+# Editors / OS
+*.swp
+.DS_Store

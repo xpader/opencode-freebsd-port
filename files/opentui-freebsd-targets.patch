@@ -1,0 +1,30 @@
+Teach OpenTUI's native build about FreeBSD.
+
+The Zig build script only knows linux/macOS/Windows targets, and the Ghostty
+VT integration gate excludes FreeBSD:
+
+  * add x86_64-freebsd and aarch64-freebsd to SUPPORTED_TARGETS, so
+    `zig build` produces lib/<arch>-freebsd/libopentui.so;
+  * enable the Ghostty VT backend on FreeBSD. Ghostty builds there (the
+    FreeBSD desktop/ghostty port and this recipe's opencode-pty both rely on
+    it), so opencode's TUI gets the same VT backend as on Linux.
+
+--- packages/native/build.zig.orig
++++ packages/native/build.zig
+@@ -27,6 +27,8 @@ const SUPPORTED_TARGETS = [_]SupportedTarget{
+     .{ .zig_target = "aarch64-macos.13.0", .output_name = "aarch64-macos", .description = "macOS aarch64 (Apple Silicon)" },
+     .{ .zig_target = "x86_64-windows-gnu", .output_name = "x86_64-windows", .description = "Windows x86_64" },
+     .{ .zig_target = "aarch64-windows-gnu", .output_name = "aarch64-windows", .description = "Windows aarch64" },
++    .{ .zig_target = "x86_64-freebsd", .output_name = "x86_64-freebsd", .description = "FreeBSD x86_64" },
++    .{ .zig_target = "aarch64-freebsd", .output_name = "aarch64-freebsd", .description = "FreeBSD aarch64" },
+ };
+ 
+ const DEFAULT_MACOS_SDK_PATH = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk";
+@@ -400,6 +402,7 @@ fn ghosttyVtAvailable(target: std.Build.ResolvedTarget) bool {
+         .linux => target.result.abi.isMusl() or target.result.abi == .gnu,
+         .macos => true,
+         .windows => target.result.abi == .gnu,
++        .freebsd => true,
+         else => false,
+     };
+ }

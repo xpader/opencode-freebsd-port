@@ -172,3 +172,9 @@ mkdir -p "$STAGE"
 cp "$WORK/opencode/packages/cli/dist/cli-freebsd-$ARCH/bin/opencode" "$STAGE/opencode"
 chmod +x "$STAGE/opencode"
 echo "done: $STAGE/opencode ($(uname -s) $ARCH, opencode $OPENCODE_VERSION)"
+
+# opencode's ripgrep bootstrap has no FreeBSD download and only falls back to
+# a system rg; it backs the grep/glob tools and non-VCS file search.
+if ! command -v rg >/dev/null 2>&1; then
+  echo "note: system ripgrep not found — 'pkg install ripgrep' is needed at runtime" >&2
+fi

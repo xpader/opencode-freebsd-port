@@ -37,6 +37,13 @@ Disk: ~6 GB free for `work/` and caches. First build takes a while (Ghostty +
 Rust + Zig release builds); subsequent steps are stamped and skipped. Delete
 `work/` to force a rebuild.
 
+Runtime: **install ripgrep** (`pkg install ripgrep`). opencode resolves its
+ripgrep through a system `rg` first, then a bundled download — and the bundled
+bootstrap has no FreeBSD entry, so a system `rg` is the only source. Without
+it the `grep`/`glob` tools fail and file search outside VCS-tracked
+directories falls back to ripgrep and errors (search inside git worktrees uses
+the embedded fff and keeps working).
+
 Install the binary wherever you like, e.g. `cp stage/opencode ~/.local/bin/`.
 
 ## What the build does

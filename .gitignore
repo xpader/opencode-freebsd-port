@@ -4,6 +4,7 @@
 /stage/
 /stage*/
 /distfiles/
+/tools/
 
 # Editors / OS
 *.swp

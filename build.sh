@@ -22,19 +22,33 @@ CACHE=${CACHE:-$ROOT/distfiles/bun-cache}
 STAMPS=$WORK/.stamps
 
 # Pinned sources.
-OPENCODE_TAG=v2.2.5
-OPENTUI_REV=738067f47e940dcec3f5aab74868908574335c6c # v0.8.0
+OPENCODE_TAG=v2.2.7
+OPENTUI_REV=6beb7e9f39b54ed7f2bb67679a2e8c96b78c8138 # v0.8.1
 FFF_REV=459ebcdbdba094843fe5339a1a7f7dae4ced2d82     # v0.10.5
 GHOSTTY_REV=ab0b9da9e88fcb4b0533a1854e84628f663930af
-OPENTUI_VERSION=0.8.0
+OPENTUI_VERSION=0.8.1
 FFF_VERSION=0.10.5
 OPENCODE_VERSION=${OPENCODE_TAG#v}
+
+# OpenTUI 0.8.1 allows exactly zig 0.17.0 (exact-match version check in its
+# build.zig), while the Ghostty sources pinned by opencode-pty still build
+# with the system zig 0.16 (lang/zig). Prefer a zig 0.17.0 installed at
+# ~/.local/apps/zig/<ver>/zig (or $ZIG17); otherwise download the official
+# FreeBSD build into tools/ for the OpenTUI step only. Either way the system
+# zig 0.16 stays first in PATH for Ghostty.
+ZIG17_VERSION=0.17.0
 
 case "$(uname -m)" in
   amd64) ARCH=x64 ZIG_ARCH=x86_64 ;;
   aarch64) ARCH=arm64 ZIG_ARCH=aarch64 ;;
   *) echo "error: unsupported machine architecture $(uname -m)" >&2; exit 1 ;;
 esac
+
+case "$ZIG_ARCH" in
+  x86_64) ZIG17_SHA256=a314f1cc92d098bd39caf9e5607a0de2a8fd0d00064776cb3fd5b3bee38a67c9 ;;
+  aarch64) ZIG17_SHA256=3cf53d07b3587a26727b196a6eb7918704b907d951520daa68e4e1820fc6f48e ;;
+esac
+ZIG17=${ZIG17:-$HOME/.local/apps/zig/$ZIG17_VERSION/zig}
 
 log() { printf '\n==> %s\n' "$*"; }
 have() { [ -f "$STAMPS/$1" ]; }
@@ -46,6 +60,19 @@ download() { # download <url> <output>
   elif command -v ftp >/dev/null 2>&1; then ftp -o "$2" "$1"
   else echo "error: no fetch/curl/ftp downloader found" >&2; exit 1
   fi
+}
+
+ensure_zig17() {
+  [ -x "$ZIG17" ] && return 0
+  log "fetching zig $ZIG17_VERSION for OpenTUI (official FreeBSD build)"
+  mkdir -p "$ROOT/tools"
+  download "https://ziglang.org/download/$ZIG17_VERSION/zig-$ZIG_ARCH-freebsd-$ZIG17_VERSION.tar.xz" \
+    "$ROOT/tools/zig-$ZIG_ARCH-freebsd-$ZIG17_VERSION.tar.xz"
+  echo "$ZIG17_SHA256  $ROOT/tools/zig-$ZIG_ARCH-freebsd-$ZIG17_VERSION.tar.xz" |
+    sha256 -c - || { echo "error: zig $ZIG17_VERSION checksum mismatch" >&2; exit 1; }
+  tar -xJf "$ROOT/tools/zig-$ZIG_ARCH-freebsd-$ZIG17_VERSION.tar.xz" -C "$ROOT/tools"
+  ZIG17="$ROOT/tools/zig-$ZIG_ARCH-freebsd-$ZIG17_VERSION/zig"
+  [ -x "$ZIG17" ] || { echo "error: zig $ZIG17_VERSION unpack failed" >&2; exit 1; }
 }
 
 clone_pinned() { # clone_pinned <url> <dir> <rev>
@@ -100,9 +127,10 @@ if ! have pty; then
   done_step pty
 fi
 
-# OpenTUI: the TUI renderer shared library (libopentui.so).
+# OpenTUI: the TUI renderer shared library (libopentui.so). Needs zig 0.17.
 if ! have opentui; then
-  log "building OpenTUI native renderer (zig ReleaseFast)"
+  ensure_zig17
+  log "building OpenTUI native renderer (zig $ZIG17_VERSION ReleaseFast)"
   (cd "$WORK/opentui/packages/native" &&
     env HOME="$WORK" \
       ZIG_GLOBAL_CACHE_DIR="$WORK/zig-cache" \
@@ -111,7 +139,7 @@ if ! have opentui; then
     env HOME="$WORK" \
       ZIG_GLOBAL_CACHE_DIR="$WORK/zig-cache" \
       ZIG_LOCAL_CACHE_DIR="$WORK/zig-cache-local" \
-      zig build -Doptimize=ReleaseFast)
+      "$ZIG17" build -Doptimize=ReleaseFast)
   LIBOPENTUI="$WORK/opentui/packages/native/lib/$ZIG_ARCH-freebsd/libopentui.so"
   [ -f "$LIBOPENTUI" ] || { echo "error: $LIBOPENTUI not built" >&2; exit 1; }
   done_step opentui

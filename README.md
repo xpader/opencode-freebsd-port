@@ -29,7 +29,7 @@ Requirements:
 | FreeBSD | 14+ | tested on 15.1-RELEASE amd64 |
 | git | any | |
 | bun | >= 1.4.4 | the official upstream binary works; `bun:ffi` is functional |
-| zig | 0.16.0 | `pkg install zig` |
+| zig | 0.16.0 | `pkg install zig`; drives the Ghostty sources. OpenTUI 0.8.1 additionally pins zig 0.17.0 (exact-match check): build.sh uses `$ZIG17` if set, else `~/.local/apps/zig/0.17.0/zig`, else downloads the official FreeBSD build into `tools/` |
 | rust + cargo | any recent | for opencode-pty and fff |
 | python3 | 3.x | for the setup scripts |
 
@@ -52,7 +52,8 @@ Install the binary wherever you like, e.g. `cp stage/opencode ~/.local/bin/`.
 2. Applies the patches from `files/` (see below).
 3. Builds `opencode-pty` with cargo against the Ghostty sources
    (`GHOSTTY_SOURCE_DIR`; the build script verifies the checkout revision).
-4. Builds OpenTUI's `libopentui.so` with Zig.
+4. Builds OpenTUI's `libopentui.so` with zig 0.17.0 (see the requirements
+   table above; the system zig 0.16 is untouched and still builds Ghostty).
 5. Builds fff's `libfff_c.so` with cargo.
 6. `bun install` in the opencode tree, then:
    - unpacks `@ff-labs/fff-bun` from the npm tarball by hand (its npm

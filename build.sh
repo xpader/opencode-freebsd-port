@@ -22,15 +22,15 @@ CACHE=${CACHE:-$ROOT/distfiles/bun-cache}
 STAMPS=$WORK/.stamps
 
 # Pinned sources.
-OPENCODE_TAG=v2.2.7
-OPENTUI_REV=6beb7e9f39b54ed7f2bb67679a2e8c96b78c8138 # v0.8.1
+OPENCODE_TAG=v2.3.0
+OPENTUI_REV=d4a2af24ba50636da5f222367f91746a1bf89644 # v0.8.4
 FFF_REV=459ebcdbdba094843fe5339a1a7f7dae4ced2d82     # v0.10.5
 GHOSTTY_REV=ab0b9da9e88fcb4b0533a1854e84628f663930af
-OPENTUI_VERSION=0.8.1
+OPENTUI_VERSION=0.8.4
 FFF_VERSION=0.10.5
 OPENCODE_VERSION=${OPENCODE_TAG#v}
 
-# OpenTUI 0.8.1 allows exactly zig 0.17.0 (exact-match version check in its
+# OpenTUI 0.8.4 allows exactly zig 0.17.0 (exact-match version check in its
 # build.zig), while the Ghostty sources pinned by opencode-pty still build
 # with the system zig 0.16 (lang/zig). Prefer a zig 0.17.0 installed at
 # ~/.local/apps/zig/<ver>/zig (or $ZIG17); otherwise download the official
@@ -114,7 +114,7 @@ if ! have patches; then
   done_step patches
 fi
 
-# opencode-pty 0.4.0: the daemon binary embedded into the CLI. Its build
+# opencode-pty 0.5.2: the daemon binary embedded into the CLI. Its build
 # script requires a Ghostty git checkout with HEAD at the pinned revision.
 if ! have pty; then
   log "building opencode-pty (cargo release, needs the Ghostty Zig sources)"

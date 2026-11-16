@@ -12,8 +12,8 @@ gap filler: it builds any pinned release on a FreeBSD machine with the tools
 listed below, and its `files/` are kept in FreeBSD port style so they can be
 fed back into the port.
 
-Current pins: **opencode v2.2.5**, OpenTUI 0.8.0, fff 0.10.5,
-@opencode/pty 0.4.0, Ghostty `ab0b9da9e88f`.
+Current pins: **opencode v2.3.0**, OpenTUI 0.8.4, fff 0.10.5,
+opencode-pty 0.5.2 (protocol v8), Ghostty `ab0b9da9e88f`.
 
 ## Quick start
 
@@ -29,7 +29,7 @@ Requirements:
 | FreeBSD | 14+ | tested on 15.1-RELEASE amd64 |
 | git | any | |
 | bun | >= 1.4.4 | the official upstream binary works; `bun:ffi` is functional |
-| zig | 0.16.0 | `pkg install zig`; drives the Ghostty sources. OpenTUI 0.8.1 additionally pins zig 0.17.0 (exact-match check): build.sh uses `$ZIG17` if set, else `~/.local/apps/zig/0.17.0/zig`, else downloads the official FreeBSD build into `tools/` |
+| zig | 0.16.0 | `pkg install zig`; drives the Ghostty sources. OpenTUI 0.8.x additionally pins zig 0.17.0 (exact-match check): build.sh uses `$ZIG17` if set, else `~/.local/apps/zig/0.17.0/zig`, else downloads the official FreeBSD build into `tools/` |
 | rust + cargo | any recent | for opencode-pty and fff |
 | python3 | 3.x | for the setup scripts |
 
@@ -120,8 +120,10 @@ Useful environment overrides for `build.sh`: `WORK=`, `STAGE=`, `CACHE=`
 ## Upgrading to a new opencode release
 
 1. Bump `OPENCODE_TAG` in `build.sh` (and `OPENTUI_REV`/`FFF_VERSION`/
-   `GHOSTTY_REV` if they moved — opencode pins opentui/fff in its lockfile,
-   check `packages/*/package.json`).
+   `GHOSTTY_REV` if they moved). Since v2.3.0 opencode pins OpenTUI as a
+   plain npm version in the root `package.json` catalog — resolve `v<version>`
+   to a commit via the opentui repo's tags — and fff through its
+   `patchedDependencies` patch filename (`patches/@ff-labs%2Ffff-bun@…`).
 2. `rm -rf work` and re-run. Expect to regenerate patches that no longer
    apply: the setup scripts locate their patch points by anchors, which drift
    across releases; the `patch-*` files apply with `patch -p0 -d work/opencode`.

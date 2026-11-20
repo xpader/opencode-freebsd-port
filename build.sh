@@ -22,7 +22,7 @@ CACHE=${CACHE:-$ROOT/distfiles/bun-cache}
 STAMPS=$WORK/.stamps
 
 # Pinned sources.
-OPENCODE_TAG=v2.3.0
+OPENCODE_TAG=v2.3.2
 OPENTUI_REV=d4a2af24ba50636da5f222367f91746a1bf89644 # v0.8.4
 FFF_REV=459ebcdbdba094843fe5339a1a7f7dae4ced2d82     # v0.10.5
 GHOSTTY_REV=ab0b9da9e88fcb4b0533a1854e84628f663930af
@@ -114,7 +114,7 @@ if ! have patches; then
   done_step patches
 fi
 
-# opencode-pty 0.5.2: the daemon binary embedded into the CLI. Its build
+# opencode-pty 0.6.0: the daemon binary embedded into the CLI. Its build
 # script requires a Ghostty git checkout with HEAD at the pinned revision.
 if ! have pty; then
   log "building opencode-pty (cargo release, needs the Ghostty Zig sources)"

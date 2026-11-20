@@ -12,8 +12,8 @@ gap filler: it builds any pinned release on a FreeBSD machine with the tools
 listed below, and its `files/` are kept in FreeBSD port style so they can be
 fed back into the port.
 
-Current pins: **opencode v2.3.0**, OpenTUI 0.8.4, fff 0.10.5,
-opencode-pty 0.5.2 (protocol v8), Ghostty `ab0b9da9e88f`.
+Current pins: **opencode v2.3.2**, OpenTUI 0.8.4, fff 0.10.5,
+opencode-pty 0.6.0, Ghostty `ab0b9da9e88f`.
 
 ## Quick start
 

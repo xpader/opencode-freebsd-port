@@ -9,7 +9,7 @@
 # Everything lands under work/ and stage/; both are safe to delete to rebuild
 # from scratch. Steps are stamped and skipped when already done.
 #
-# Requirements: git, bun >= 1.4, zig 0.16, cargo (rust), python 3.
+# Requirements: git, bun >= 1.4, zig 0.16 and 0.17.1, cargo (rust), python 3.
 #
 # Override the build tree with WORK=... (defaults to ./work).
 
@@ -22,21 +22,23 @@ CACHE=${CACHE:-$ROOT/distfiles/bun-cache}
 STAMPS=$WORK/.stamps
 
 # Pinned sources.
-OPENCODE_TAG=v2.3.2
-OPENTUI_REV=d4a2af24ba50636da5f222367f91746a1bf89644 # v0.8.4
+OPENCODE_TAG=v2.4.1
+OPENTUI_REV=ff939592dc7bd102a4665bf340c4960b868b306b # v0.9.4
 FFF_REV=459ebcdbdba094843fe5339a1a7f7dae4ced2d82     # v0.10.5
 GHOSTTY_REV=ab0b9da9e88fcb4b0533a1854e84628f663930af
-OPENTUI_VERSION=0.8.4
+OPENTUI_VERSION=0.9.4
 FFF_VERSION=0.10.5
 OPENCODE_VERSION=${OPENCODE_TAG#v}
 
-# OpenTUI 0.8.4 allows exactly zig 0.17.0 (exact-match version check in its
-# build.zig), while the Ghostty sources pinned by opencode-pty still build
-# with the system zig 0.16 (lang/zig). Prefer a zig 0.17.0 installed at
+# OpenTUI 0.9.4 requires zig 0.17.1 (minimum_zig_version in build.zig.zon).
+# The FreeBSD port patches that minimum down to 0.17.0 because the ports tree
+# ships 0.17.0; this machine has 0.17.1, so use the real requirement and carry
+# no compat patch. The Ghostty sources pinned by opencode-pty still build with
+# the system zig 0.16 (lang/zig). Prefer a zig 0.17.1 installed at
 # ~/.local/apps/zig/<ver>/zig (or $ZIG17); otherwise download the official
 # FreeBSD build into tools/ for the OpenTUI step only. Either way the system
 # zig 0.16 stays first in PATH for Ghostty.
-ZIG17_VERSION=0.17.0
+ZIG17_VERSION=0.17.1
 
 case "$(uname -m)" in
   amd64) ARCH=x64 ZIG_ARCH=x86_64 ;;
@@ -45,8 +47,8 @@ case "$(uname -m)" in
 esac
 
 case "$ZIG_ARCH" in
-  x86_64) ZIG17_SHA256=a314f1cc92d098bd39caf9e5607a0de2a8fd0d00064776cb3fd5b3bee38a67c9 ;;
-  aarch64) ZIG17_SHA256=3cf53d07b3587a26727b196a6eb7918704b907d951520daa68e4e1820fc6f48e ;;
+  x86_64) ZIG17_SHA256=fd8b9728f05db2a9942fc1f18087c0e0d6dfccb7a51557b06cf026d3e4c78542 ;;
+  aarch64) ZIG17_SHA256=5ebd395db8996df2bfe1c252b5b6848ec8fad886192cbd88358fbcbf91c91703 ;;
 esac
 ZIG17=${ZIG17:-$HOME/.local/apps/zig/$ZIG17_VERSION/zig}
 
@@ -103,11 +105,13 @@ if ! have patches; then
   apply_patch "$ROOT/files/ghostty-zig-0.16-std.patch" "$WORK/ghostty" 1
   apply_patch "$ROOT/files/opentui-freebsd-targets.patch" "$WORK/opentui" 0
   for p in \
+    patch-packages_app_vite.js \
     patch-packages_cli_script_build.ts \
     patch-packages_cli_script_opencode-pty.ts \
     patch-packages_cli_src_heap.ts \
     patch-packages_cli_src_server-process.ts \
-    patch-packages_cli_src_services_service-registration.ts
+    patch-packages_cli_src_services_service-registration.ts \
+    patch-packages_core_src_config_discovery.ts
   do
     apply_patch "$ROOT/files/$p" "$WORK/opencode" 0
   done
@@ -197,8 +201,15 @@ fi
 
 log "staging the binary"
 mkdir -p "$STAGE"
-cp "$WORK/opencode/packages/cli/dist/cli-freebsd-$ARCH/bin/opencode" "$STAGE/opencode"
-chmod +x "$STAGE/opencode"
+cp "$WORK/opencode/packages/cli/dist/cli-freebsd-$ARCH/bin/opencode" "$STAGE/opencode.new"
+chmod +x "$STAGE/opencode.new"
+mv -f "$STAGE/opencode.new" "$STAGE/opencode"
+# The fff library and the PTY daemon are embedded in the executable; fail if
+# either is missing (the same checks as the FreeBSD port's do-test).
+for marker in "crates/fff-c/src" libghostty; do
+  grep -aq -- "$marker" "$STAGE/opencode" ||
+    { echo "error: '$marker' is not embedded in $STAGE/opencode" >&2; exit 1; }
+done
 echo "done: $STAGE/opencode ($(uname -s) $ARCH, opencode $OPENCODE_VERSION)"
 
 # opencode's ripgrep bootstrap has no FreeBSD download and only falls back to

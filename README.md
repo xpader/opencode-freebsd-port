@@ -12,7 +12,7 @@ gap filler: it builds any pinned release on a FreeBSD machine with the tools
 listed below, and its `files/` are kept in FreeBSD port style so they can be
 fed back into the port.
 
-Current pins: **opencode v2.3.2**, OpenTUI 0.8.4, fff 0.10.5,
+Current pins: **opencode v2.4.1**, OpenTUI 0.9.4, fff 0.10.5,
 opencode-pty 0.6.0, Ghostty `ab0b9da9e88f`.
 
 ## Quick start
@@ -29,7 +29,7 @@ Requirements:
 | FreeBSD | 14+ | tested on 15.1-RELEASE amd64 |
 | git | any | |
 | bun | >= 1.4.4 | the official upstream binary works; `bun:ffi` is functional |
-| zig | 0.16.0 | `pkg install zig`; drives the Ghostty sources. OpenTUI 0.8.x additionally pins zig 0.17.0 (exact-match check): build.sh uses `$ZIG17` if set, else `~/.local/apps/zig/0.17.0/zig`, else downloads the official FreeBSD build into `tools/` |
+| zig | 0.16.0 | `pkg install zig`; drives the Ghostty sources. OpenTUI 0.9.x asks for zig 0.17.1 in its `build.zig.zon` (the exact-match check is gone): build.sh uses `$ZIG17` if set, else `~/.local/apps/zig/0.17.1/zig`, else downloads the official FreeBSD build into `tools/` |
 | rust + cargo | any recent | for opencode-pty and fff |
 | python3 | 3.x | for the setup scripts |
 
@@ -52,8 +52,10 @@ Install the binary wherever you like, e.g. `cp stage/opencode ~/.local/bin/`.
 2. Applies the patches from `files/` (see below).
 3. Builds `opencode-pty` with cargo against the Ghostty sources
    (`GHOSTTY_SOURCE_DIR`; the build script verifies the checkout revision).
-4. Builds OpenTUI's `libopentui.so` with zig 0.17.0 (see the requirements
+4. Builds OpenTUI's `libopentui.so` with zig 0.17.1 (see the requirements
    table above; the system zig 0.16 is untouched and still builds Ghostty).
+   OpenTUI 0.9 renders on the calling thread, so no renderer-thread guard is
+   needed.
 5. Builds fff's `libfff_c.so` with cargo.
 6. `bun install` in the opencode tree, then:
    - unpacks `@ff-labs/fff-bun` from the npm tarball by hand (its npm
@@ -72,7 +74,9 @@ Install the binary wherever you like, e.g. `cp stage/opencode ~/.local/bin/`.
 
 | file | purpose |
 |------|---------|
-| `patch-packages_cli_script_build.ts` | teach the CLI build script the freebsd targets (no @parcel/watcher package exists; bun emits no bytecode there) |
+| `patch-packages_app_vite.js` | **bug fix:** disable Solid's template validation in the web UI build (it spins on FreeBSD/aarch64) |
+| `patch-packages_cli_script_build.ts` | teach the CLI build script the freebsd targets (no @parcel/watcher package exists, so the binding is a stub; Iroh has no FreeBSD package, so it is marked unavailable; bun emits no bytecode there) |
+| `patch-packages_core_src_config_discovery.ts` | read the system config from `/usr/local/etc/opencode`, per hier(7) |
 | `patch-packages_cli_script_opencode-pty.ts` | accept freebsd in the PTY-embed whitelist |
 | `patch-packages_cli_src_heap.ts` | **bug fix:** skip the SIGUSR1 heap handler on FreeBSD (see below) |
 | `patch-packages_cli_src_server-process.ts` | **bug fix:** normalize wildcard addresses in the service probe URL |
@@ -80,7 +84,7 @@ Install the binary wherever you like, e.g. `cp stage/opencode ~/.local/bin/`.
 | `opentui-freebsd-targets.patch` | freebsd targets in OpenTUI's `build.zig` + enable the Ghostty VT backend |
 | `ghostty-zig-0.16-std.patch` | rename `trimRight/trimLeft` -> `trimEnd/trimStart` for Zig 0.16 |
 | `setup-opentui-freebsd.py`, `setup-fff-freebsd.py` | create the platform packages and patch the bundled JS |
-| `webui-wasm-package.json` | WASM fallback deps for the web UI's native bindings (arm64 only, see below) |
+| `webui-wasm-package.json` | WASM fallback deps for the web UI's native bindings, with `@napi-rs/wasm-runtime` pinned to match rolldown's copy (arm64 only, see below) |
 
 ### The two runtime bugs
 

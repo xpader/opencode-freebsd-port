@@ -1,7 +1,7 @@
 Teach OpenCode's CLI build script about FreeBSD.
 
 Upstream's target list only covers linux, darwin and win32, and its per-target
-plugins assume a native @parcel/watcher package and bytecode support, neither of
+plugins assume native @parcel/watcher, Iroh and bytecode support, none of
 which exists on FreeBSD:
 
   * add the freebsd arm64/x64 targets so `--target=opencode-freebsd-<arch>`
@@ -11,20 +11,22 @@ which exists on FreeBSD:
     @parcel/watcher-freebsd-* package); the watcher service already falls back
     to node:fs for file/entries watches and logs "backend not supported" for
     recursive directories;
+  * leave the Iroh binding unavailable on FreeBSD, where upstream ships no
+    native package (the server treats it as unavailable, like Intel Macs);
   * disable bytecode on FreeBSD, where bun does not emit it.
 
 --- packages/cli/script/build.ts.orig
 +++ packages/cli/script/build.ts
-@@ -52,6 +52,8 @@
+@@ -55,6 +55,8 @@
    { os: "win32", arch: "arm64" },
    { os: "win32", arch: "x64" },
    { os: "win32", arch: "x64", avx2: false },
 +  { os: "freebsd", arch: "arm64" },
 +  { os: "freebsd", arch: "x64" },
  ]
-
+ 
  const targets =
-@@ -143,10 +145,11 @@
+@@ -159,16 +161,17 @@
    const parcelWatcherPlugin: BunPlugin = {
      name: "parcel-watcher-binding",
      setup(build) {
@@ -39,8 +41,15 @@ which exists on FreeBSD:
 +      )
      },
    }
-   const target = targetName(item)
-@@ -167,7 +170,7 @@
+   // The machine link's Iroh binding: this target's native package is embedded, and a target with none (Intel Macs)
+   // gets `undefined`, which the server takes as Iroh being unavailable.
+   const irohPackage =
+-    item.os === "darwin" && item.arch === "x64"
++    item.os === "freebsd" || (item.os === "darwin" && item.arch === "x64")
+       ? undefined
+       : `@number0/iroh-${item.os}-${item.arch}${item.os === "linux" ? `-${item.abi === "musl" ? "musl" : "gnu"}` : item.os === "win32" ? "-msvc" : ""}`
+   const irohBindingPlugin: BunPlugin = {
+@@ -201,7 +204,7 @@
      external: ["node-gyp"],
      format: "esm",
      minify: true,
